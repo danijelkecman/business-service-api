@@ -6,34 +6,27 @@ from core.models import Category, Service
 from . import serializers
 
 
-class CategoryViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin):
-    """Manage categories in the database"""
+class BaseBusinessAttrViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin):
+    """Base viewset for business attributes"""
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        """Return objects for the current authenticated user only"""
+        return self.queryset.filter(user=self.request.user).order_by('-name')
+
+    def perform_create(self, serializer):
+        """Create a new category"""
+        serializer.save(user=self.request.user)
+
+
+class CategoryViewSet(BaseBusinessAttrViewSet):
+    """Manage categories in the database"""
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
 
-    def get_queryset(self):
-        """Return objects for the current authenticated user only"""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
 
-    def perform_create(self, serializer):
-        """Create a new category"""
-        serializer.save(user=self.request.user)
-
-
-class ServiceViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin):
+class ServiceViewSet(BaseBusinessAttrViewSet):
     """Manage services in the database"""
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
     queryset = Service.objects.all()
     serializer_class = serializers.ServiceSerializer
-
-    def get_queryset(self):
-        """Return objects for the current authenticated user only"""
-        return self.queryset.filter(user=self.request.user).order_by('-name')
-
-    def perform_create(self, serializer):
-        """Create a new category"""
-        serializer.save(user=self.request.user)
-    
