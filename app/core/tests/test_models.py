@@ -56,3 +56,11 @@ class ModelTests(TestCase):
         
         self.assertEqual(str(category), category.name)
 
+    def test_services_str(self):
+        """Test the services string represenation"""
+        service = models.Service.objects.create(
+            user=sample_user(),
+            name='Programming'
+        )
+        self.assertEqual(str(service), service.name)
+
