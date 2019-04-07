@@ -55,8 +55,22 @@ class Service(models.Model):
     name = models.CharField(max_length=255)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.DO_NOTHING
+        on_delete=models.CASCADE
     )
+
+    def __str__(self):
+        return self.name
+
+
+class Business(models.Model):
+    """Business model"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    name = models.CharField(max_length=255)
+    categories = models.ManyToManyField('Category')
+    services = models.ManyToManyField('Service')
 
     def __str__(self):
         return self.name
