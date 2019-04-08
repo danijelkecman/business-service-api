@@ -1,3 +1,8 @@
+import tempfile
+import os
+
+from PIL import Image
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -12,6 +17,10 @@ from ..serializers import BusinessSerializer, BusinessDetailSerializer
 
 BUSINESS_URL = reverse('business:business-list')
 
+
+def image_upload_url(business_id):
+    """Return url for business image"""
+    return reverse('business:business-upload-image', args=[business_id])
 
 def detail_url(business_id):
     """Return business detail url"""
@@ -180,3 +189,86 @@ class PrivateBusinessApiTest(TestCase):
         self.assertEqual(business.name, payload['name'])
         categories = business.categories.all()
         self.assertEqual(categories.count(), 0)
+
+
+class BusinessImageUploadTest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user('user@test.com', '12345')
+        self.client.force_authenticate(self.user)
+        self.business = sample_business(user=self.user)
+
+    def tearDown(self):
+        self.business.image.delete()
+
+    def test_upload_image_to_business(self):
+        """Test uploading an image to business"""
+        url = image_upload_url(self.business.id)
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as ntf:
+            img = Image.new('RGB', (10, 10))
+            img.save(ntf, format='JPEG')
+            ntf.seek(0)
+            res = self.client.post(url, {'image': ntf}, format='multipart')
+        
+        self.business.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.business.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test uploading an invalid image"""
+        url = image_upload_url(self.business.id)
+
+        res = self.client.post(url, {'image': 'notimage'}, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_businesses_by_category(self):
+        """Test returning businesses in specific category"""
+        business1 = sample_business(user=self.user, name='Business 1')
+        business2 = sample_business(user=self.user, name='Business 2')
+        category1 = sample_category(user=self.user, name='Category 1')
+        category2 = sample_category(user=self.user, name='Category 2')
+        business1.categories.add(category1)
+        business2.categories.add(category2)
+        business3 = sample_business(user=self.user, name='Business 3')
+
+        res = self.client.get(
+            BUSINESS_URL,
+            {'categories': f'{category1.id}, {category2.id}'}
+        )
+
+        serializer1 = BusinessSerializer(business1)
+        serializer2 = BusinessSerializer(business2)
+        serializer3 = BusinessSerializer(business3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_businesses_by_services(self):
+        """Test returning businesses in specific service"""
+        business1 = sample_business(user=self.user, name='Business 1')
+        business2 = sample_business(user=self.user, name='Business 2')
+        service1 = sample_service(user=self.user, name='Service 1')
+        service2 = sample_service(user=self.user, name='Service 2')
+        business1.services.add(service1)
+        business2.services.add(service2)
+        business3 = sample_business(user=self.user, name='Business 3')
+
+        res = self.client.get(
+            BUSINESS_URL,
+            {'services': f'{service1.id}, {service2.id}'}
+        )
+
+        serializer1 = BusinessSerializer(business1)
+        serializer2 = BusinessSerializer(business2)
+        serializer3 = BusinessSerializer(business3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    
+        

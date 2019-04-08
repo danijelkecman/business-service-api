@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Category
+from core.models import Category, Business
 
 from ..serializers import CategorySerializer
 
@@ -84,3 +84,18 @@ class PrivateCategoryApiTests(TestCase):
         res = self.client.post(CATEGORY_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_category_assigned_to_businesses(self):
+        """Test filtering categories by thoser assigned to businesses"""
+        category1 = Category.objects.create(user=self.user, name='Category 1')
+        category2 = Category.objects.create(user=self.user, name='Category 2')
+        business = Business.objects.create(user=self.user, name='Business 1')
+        business.categories.add(category1)
+
+        res = self.client.get(CATEGORY_URL, {'assigned_only': 1})
+
+        serializer1 = CategorySerializer(category1)
+        serializer2 = CategorySerializer(category2)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)

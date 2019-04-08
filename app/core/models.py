@@ -1,6 +1,17 @@
+import uuid
+import os
+
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.conf import settings
+
+
+def business_image_file_path(instance, filename):
+    """Generate file path for new business image"""
+    ext = filename.split('.')[-1]
+    filename = f'{uuid.uuid4()}.{ext}'
+
+    return os.path.join('uploads/business/', filename)
 
 
 class UserManager(BaseUserManager):
@@ -43,7 +54,7 @@ class Category(models.Model):
     name = models.CharField(max_length=255)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.DO_NOTHING
+        on_delete=models.CASCADE
     )
 
     def __str__(self):
@@ -71,6 +82,7 @@ class Business(models.Model):
     name = models.CharField(max_length=255)
     categories = models.ManyToManyField('Category')
     services = models.ManyToManyField('Service')
+    image = models.ImageField(null=True, upload_to=business_image_file_path)
 
     def __str__(self):
         return self.name

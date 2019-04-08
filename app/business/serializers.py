@@ -42,3 +42,12 @@ class BusinessDetailSerializer(BusinessSerializer):
     """Serializer for Business Detail object"""
     services = ServiceSerializer(many=True, read_only=True)
     categories = CategorySerializer(many=True, read_only=True)
+
+
+class BusinessImageSerializer(serializers.ModelSerializer):
+    """Serializer for uploading images to businesses"""
+
+    class Meta:
+        model = Business
+        fields = ('id', 'image')
+        read_only_fields = ('id',)

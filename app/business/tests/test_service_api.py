@@ -5,7 +5,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Service
+from core.models import Service, Business
 
 from ..serializers import ServiceSerializer
 
@@ -83,6 +83,21 @@ class PrivateSeviceApiTests(TestCase):
         res = self.client.post(SERVICE_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_services_assigned_to_businesses(self):
+        """Test filtering services by thoser assigned to businesses"""
+        services1 = Service.objects.create(user=self.user, name='Service 1')
+        services2 = Service.objects.create(user=self.user, name='Service 2')
+        business = Business.objects.create(user=self.user, name='Business 1')
+        business.services.add(services1)
+
+        res = self.client.get(SERVICE_URL, {'assigned_only': 1})
+
+        serializer1 = ServiceSerializer(services1)
+        serializer2 = ServiceSerializer(services2)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
 
 
 
